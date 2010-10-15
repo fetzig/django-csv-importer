@@ -1,11 +1,7 @@
-import datetime, csv
-
 from django.http import HttpResponseRedirect
 from django.shortcuts import render_to_response, get_object_or_404
-from django.core.files.base import ContentFile
 from django.template import RequestContext
 from django.contrib.admin.views.decorators import staff_member_required
-from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.views.generic.list_detail import object_list, object_detail
 from django.contrib import messages
@@ -13,45 +9,80 @@ from django.contrib import messages
 from csvimporter.models import CSV
 from csvimporter.forms import CSVForm, CSVAssociateForm
 
-CSVIMPORTER_REDIRECT_URL = getattr(
-    settings, "CSVIMPORTER_REDIRECT_URL", "csv-list")
-CSVIMPORTER_DEFAULT_APP = getattr(settings, "CSVIMPORTER_DEFAULT_APP", None)
 
+# TODO: Make this view class based
+def prepare_view(request, kwargs):
+    if not kwargs.get("model"):
+        raise ValueError("You haven't specified the model")
+    else:
+        kwargs["app_label"] = kwargs["model"]._meta.app_label
+        kwargs["model_name"] = kwargs["model"]._meta.module_name
+        kwargs["redirect_url"] = reverse(
+                "admin:%s_%s_changelist" % (kwargs["app_label"],
+                                            kwargs["model_name"])
+                )
+        kwargs["extra_context"] = {
+            "app_label": kwargs["app_label"],
+            "model_name": kwargs["model_name"],
+            "redirect_url": kwargs["redirect_url"]            
+        }
+    return kwargs
 @staff_member_required
 def csv_list(request, **kwargs):
-    return object_list(request, queryset=CSV.objects.all(), template_name='csvimporter/csv_list.html', template_object_name='csv')
+    kwargs = prepare_view(request, kwargs)
+    if not kwargs.get("template_name"):
+        kwargs["template_name"] = 'csvimporter/csv_list.html'
+    return object_list(request,
+        queryset=CSV.objects.all(),
+        template_name=kwargs["template_name"],
+        template_object_name='csv',
+        extra_context=kwargs["extra_context"],
+    )
 
 @staff_member_required
-def associate(
-    request, object_id, redirect_url=CSVIMPORTER_REDIRECT_URL, **kwargs
-    ):
+def associate(request, object_id, **kwargs):
+    if not kwargs.get("template_name"):
+        kwargs["template_name"] = 'csvimporter/csv_detail.html'
+    if not kwargs.get("form_class"):
+        kwargs["form_class"] = CSVAssociateForm
+    kwargs = prepare_view(request, kwargs)
     instance = get_object_or_404(CSV, pk=object_id)
     if request.method == 'POST':
-        form = CSVAssociateForm(instance, request.POST)
+        form = kwargs["form_class"](instance, request.POST)
         if form.is_valid():
             form.save(request)
             request.user.message_set.create(message='CSV imported.')
-            return HttpResponseRedirect(reverse(redirect_url))
+            return HttpResponseRedirect(kwargs["redirect_url"])
     else:
         messages.info(request, 'Uploaded CSV. Please associate fields below.')
         form = CSVAssociateForm(instance)
+    kwargs["extra_context"].update({"form": form})
     return object_detail(request,
         queryset=CSV.objects.all(),
         object_id=object_id,
-        template_name='csvimporter/csv_detail.html',
+        template_name=kwargs["template_name"],
         template_object_name='csv',
-        extra_context={
-            'form':form,
-        })
-    
+        extra_context=kwargs["extra_context"],
+    )
+
 @staff_member_required
-def new(request, app=CSVIMPORTER_DEFAULT_APP, **kwargs):
+def new(request, **kwargs):
+    if not kwargs.get("template_name"):
+        kwargs["template_name"] = 'csvimporter/new.html'
+    if not kwargs.get("form_class"):
+        kwargs["form_class"] = CSVForm
+    kwargs = prepare_view(request, kwargs)
     if request.method == 'POST':
-        form = CSVForm(app, request.POST, request.FILES)
+        form = kwargs["form_class"](kwargs["app_label"],
+                                    request.POST, request.FILES)
         if form.is_valid():
             instance = form.save()
-            return HttpResponseRedirect(reverse('associate-csv',args=[instance.id]))
+            return HttpResponseRedirect(
+                        reverse('associate-csv', args=[instance.id]))
     else:
-        form = CSVForm(app)
-    return render_to_response('csvimporter/new.html',
-        {'form':form}, context_instance=RequestContext(request))
+        form = kwargs["form_class"](kwargs["app_label"])
+    kwargs["extra_context"].update({"form": form})
+    return render_to_response(kwargs["template_name"],
+        kwargs["extra_context"],
+        context_instance=RequestContext(request)
+    )
