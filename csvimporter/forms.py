@@ -1,3 +1,4 @@
+import re
 from copy import copy
 
 from django import forms
@@ -14,8 +15,8 @@ from csvimporter.utils import create_csv_reader
 
 
 class CSVForm(forms.ModelForm):
-    def __init__(self, app=None, *args, **kwargs):
-        self.app = app
+    def __init__(self, model=None, *args, **kwargs):
+        self.model = model
         super(CSVForm, self).__init__(*args, **kwargs)
         content_types = ContentType.objects.all()
         exclude_types = getattr(settings, 'CSVIMPORTER_EXCLUDE', [])
@@ -30,8 +31,9 @@ class CSVForm(forms.ModelForm):
                 content_types = content_types.exclude(app_label__iexact=t)
         self.fields['content_type'] = forms.ModelChoiceField(queryset=content_types)
 
-        if self.app:
-            self.fields['content_type'].initial = content_types.get(app_label=self.app)
+        if self.model:
+            self.fields['content_type'].initial = (
+                content_types.get(model=self.model._meta.module_name))
             self.fields['content_type'].widget = forms.widgets.HiddenInput()
 
     class Meta:
@@ -82,6 +84,10 @@ class CSVAssociateForm(forms.Form):
                     field = new_obj._meta.get_field(key)
                 except FieldDoesNotExist:
                     continue
+                # Cleaning
+                if type(data[key]) in (str, unicode):
+                    data[key] = re.sub(
+                        r"^ +$", "", data[key].encode()).decode()
                 if type(field) in [models.IntegerField, models.FloatField]:
                     data[key] = data[key].replace(",", "")
                     if not data[key]:
@@ -90,8 +96,11 @@ class CSVAssociateForm(forms.Form):
             try:
                 new_obj.save()
                 ok += 1
-            except IntegrityError:
-                dups += 1
+            except IntegrityError as e:
+                if 'unique' in str(e):
+                    dups += 1
+                else:
+                    raise
         if ok:
             messages.info(request, _("Successfully imported %s records.") % ok)
         if dups:

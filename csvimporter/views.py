@@ -27,6 +27,8 @@ def prepare_view(request, kwargs):
             "redirect_url": kwargs["redirect_url"]            
         }
     return kwargs
+
+
 @staff_member_required
 def csv_list(request, **kwargs):
     kwargs = prepare_view(request, kwargs)
@@ -38,6 +40,7 @@ def csv_list(request, **kwargs):
         template_object_name='csv',
         extra_context=kwargs["extra_context"],
     )
+
 
 @staff_member_required
 def associate(request, object_id, **kwargs):
@@ -65,6 +68,7 @@ def associate(request, object_id, **kwargs):
         extra_context=kwargs["extra_context"],
     )
 
+
 @staff_member_required
 def new(request, **kwargs):
     if not kwargs.get("template_name"):
@@ -73,14 +77,14 @@ def new(request, **kwargs):
         kwargs["form_class"] = CSVForm
     kwargs = prepare_view(request, kwargs)
     if request.method == 'POST':
-        form = kwargs["form_class"](kwargs["app_label"],
+        form = kwargs["form_class"](kwargs["model"],
                                     request.POST, request.FILES)
         if form.is_valid():
             instance = form.save()
             return HttpResponseRedirect(
                         reverse('associate-csv', args=[instance.id]))
     else:
-        form = kwargs["form_class"](kwargs["app_label"])
+        form = kwargs["form_class"](kwargs["model"])
     kwargs["extra_context"].update({"form": form})
     return render_to_response(kwargs["template_name"],
         kwargs["extra_context"],
