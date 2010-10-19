@@ -12,6 +12,7 @@ from django.utils.translation import ugettext as _
 from csvimporter.models import CSV
 from csvimporter.utils import create_csv_reader
 
+
 class CSVForm(forms.ModelForm):
     def __init__(self, app=None, *args, **kwargs):
         self.app = app
@@ -21,25 +22,35 @@ class CSVForm(forms.ModelForm):
         # TODO: this could be so much nicer.
         for t in exclude_types:
             if '.' in t:
-                content_types = content_types.exclude(app_label__iexact=t.split('.')[0], model__iexact=t.split('.')[1].lower())
+                content_types = content_types.exclude(
+                    app_label__iexact=t.split('.')[0],
+                    model__iexact=t.split('.')[1].lower()
+                    )
             else:
                 content_types = content_types.exclude(app_label__iexact=t)
         self.fields['content_type'] = forms.ModelChoiceField(queryset=content_types)
-        
+
         if self.app:
             self.fields['content_type'].initial = content_types.get(app_label=self.app)
             self.fields['content_type'].widget = forms.widgets.HiddenInput()
+
     class Meta:
         model = CSV
-    
-key_to_field_map = getattr(settings, 'CSVIMPORTER_KEY_TO_FIELD_MAP', lambda k: k.replace(' ','_').lower())
+
+key_to_field_map = getattr(
+    settings,
+    'CSVIMPORTER_KEY_TO_FIELD_MAP', lambda k: k.replace(' ', '_').lower()
+)
+
+
 class CSVAssociateForm(forms.Form):
     def __init__(self, instance, *args, **kwargs):
         self.instance = instance
         self.reader = create_csv_reader(instance.csv_file.file)
-#        self.reader.next()
         self.klass = self.instance.content_type.model_class()
-        choices = [(None,'---- (None)')] + [(f.name, f.name) for f in self.klass._meta.fields]
+        # pylint: disable-msg=W0212
+        choices = ([(None, '---- (None)')] +
+                   [(f.name, f.name) for f in self.klass._meta.fields])
         super(CSVAssociateForm, self).__init__(*args, **kwargs)
         for field_name in self.reader.fieldnames:
             self.fields[field_name] = forms.ChoiceField(choices=choices, required=False)
@@ -51,9 +62,10 @@ class CSVAssociateForm(forms.Form):
                 _choices.append((mapped_field_name, mapped_field_name))
                 self.fields[field_name] = forms.ChoiceField(choices=_choices, required=False)
                 self.fields[field_name].initial = mapped_field_name
-        
+
     def save(self, request):
-        # these are out here because we only need to retreive them from settings the once.
+        # these are out here because we only need
+        # to retreive them from settings the once.
         transforms = getattr(settings, 'CSVIMPORTER_DATA_TRANSFORMS', {})
         dups = 0
         ok = 0
@@ -61,7 +73,8 @@ class CSVAssociateForm(forms.Form):
             data = {}
             for field_name in self.reader.fieldnames:
                 data[self.cleaned_data[field_name]] = row[field_name]
-            transform_key = '%s.%s' % (self.instance.content_type.app_label, self.instance.content_type.model)
+            transform_key = '%s.%s' % (self.instance.content_type.app_label,
+                                       self.instance.content_type.model)
             data = transforms.get(transform_key, lambda r, d: d)(request, data)
             new_obj = self.klass()
             for key in data.keys():
@@ -70,6 +83,7 @@ class CSVAssociateForm(forms.Form):
                 except FieldDoesNotExist:
                     continue
                 if type(field) in [models.IntegerField, models.FloatField]:
+                    data[key] = data[key].replace(",", "")
                     if not data[key]:
                         data[key] = None
                 setattr(new_obj, key, data[key])
