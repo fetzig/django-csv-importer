@@ -19,16 +19,6 @@ class CSVForm(forms.ModelForm):
         self.model = model
         super(CSVForm, self).__init__(*args, **kwargs)
         content_types = ContentType.objects.all()
-        exclude_types = getattr(settings, 'CSVIMPORTER_EXCLUDE', [])
-        # TODO: this could be so much nicer.
-        for t in exclude_types:
-            if '.' in t:
-                content_types = content_types.exclude(
-                    app_label__iexact=t.split('.')[0],
-                    model__iexact=t.split('.')[1].lower()
-                    )
-            else:
-                content_types = content_types.exclude(app_label__iexact=t)
         self.fields['content_type'] = forms.ModelChoiceField(queryset=content_types)
 
         if self.model:
@@ -38,11 +28,6 @@ class CSVForm(forms.ModelForm):
 
     class Meta:
         model = CSV
-
-key_to_field_map = getattr(
-    settings,
-    'CSVIMPORTER_KEY_TO_FIELD_MAP', lambda k: k.replace(' ', '_').lower()
-)
 
 
 class CSVAssociateForm(forms.Form):
@@ -56,7 +41,7 @@ class CSVAssociateForm(forms.Form):
         super(CSVAssociateForm, self).__init__(*args, **kwargs)
         for field_name in self.reader.fieldnames:
             self.fields[field_name] = forms.ChoiceField(choices=choices, required=False)
-            mapped_field_name = key_to_field_map(field_name)
+            mapped_field_name = self.klass.csvimporter['csv_associate'](field_name)
             if mapped_field_name in [f.name for f in self.klass._meta.fields]:
                 self.fields[field_name].initial = mapped_field_name
             else:
@@ -68,7 +53,8 @@ class CSVAssociateForm(forms.Form):
     def save(self, request):
         # these are out here because we only need
         # to retreive them from settings the once.
-        transforms = getattr(settings, 'CSVIMPORTER_DATA_TRANSFORMS', {})
+        transforms = self.klass.csvimporter.get(
+            'csv_transform', lambda r, d: d)
         dups = 0
         ok = 0
         for row in self.reader:
@@ -77,7 +63,7 @@ class CSVAssociateForm(forms.Form):
                 data[self.cleaned_data[field_name]] = row[field_name]
             transform_key = '%s.%s' % (self.instance.content_type.app_label,
                                        self.instance.content_type.model)
-            data = transforms.get(transform_key, lambda r, d: d)(request, data)
+            data = transforms(request, data)
             new_obj = self.klass()
             for key in data.keys():
                 try:

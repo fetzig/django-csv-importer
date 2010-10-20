@@ -24,7 +24,7 @@ def prepare_view(request, kwargs):
         kwargs["extra_context"] = {
             "app_label": kwargs["app_label"],
             "model_name": kwargs["model_name"],
-            "redirect_url": kwargs["redirect_url"]            
+            "redirect_url": kwargs["redirect_url"],
         }
     return kwargs
 
