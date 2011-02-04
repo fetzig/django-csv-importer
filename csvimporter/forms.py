@@ -82,7 +82,7 @@ class CSVAssociateForm(forms.Form):
             try:
                 new_obj.save()
                 ok += 1
-            except IntegrityError as e:
+            except IntegrityError, e:
                 if 'unique' in str(e):
                     dups += 1
                 else:
