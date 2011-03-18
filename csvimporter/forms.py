@@ -35,6 +35,7 @@ class CSVAssociateForm(forms.Form):
     def __init__(self, instance, *args, **kwargs):
         self.instance = instance
         self.reader = create_csv_reader(instance.csv_file.file)
+        self.reader_rows = list(self.reader)
         self.klass = self.instance.content_type.model_class()
         # pylint: disable-msg=W0212
         choices = ([(None, '---- (None)')] +
@@ -50,7 +51,26 @@ class CSVAssociateForm(forms.Form):
                 _choices.append((mapped_field_name, mapped_field_name))
                 self.fields[field_name] = forms.ChoiceField(choices=_choices, required=False)
                 self.fields[field_name].initial = mapped_field_name
-
+    
+    def clean(self):
+        validators = self.klass.csvimporter.get(
+            'csv_validate', lambda d, i: d)
+        
+        line = 1
+        errors = []
+        
+        for row in self.reader_rows:
+            data = {}
+            for field_name in self.reader.fieldnames:
+                data[self.cleaned_data[field_name]] = row[field_name]
+            result = validators(data, line)
+            errors.extend(result)
+            line += 1
+        if len(errors) > 0:
+            raise forms.ValidationError(errors)
+        
+        return super(CSVAssociateForm, self).clean()
+        
     def save(self, request):
         # these are out here because we only need
         # to retreive them from settings the once.
@@ -58,7 +78,7 @@ class CSVAssociateForm(forms.Form):
             'csv_transform', lambda r, d: d)
         dups = 0
         ok = 0
-        for row in self.reader:
+        for row in self.reader_rows:
             data = {}
             for field_name in self.reader.fieldnames:
                 data[self.cleaned_data[field_name]] = row[field_name]
