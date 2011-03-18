@@ -2,15 +2,5 @@
 {% load i18n %}
 
 {% block breadcrumbs %}
-  <div class="breadcrumbs">
-    <a href="{% url admin:index %}">
-      {% trans "Home" %}
-    </a>
-     &rsaquo; 
-     <a href="{{ redirect_url }}">
-       {{ app_label|capfirst }}
-    </a>
-    &rsaquo; 
-    CSV
-  </div>
+  <div id="breadcrumbs"><a href="{% url admin:index %}">{% trans "Home" %}</a>&rsaquo; <a href="{{ redirect_url }}">{{ app_label|capfirst }}</a>&rsaquo; CSV</div>
 {% endblock %}

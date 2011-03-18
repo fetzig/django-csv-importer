@@ -1,15 +1,11 @@
 {% extends "csvimporter/base.html" %}
 
 {% block content %}
-
-<div id="content-main">
-    <h2>CSV Uploads</h2>
+    <h1>CSV Uploads</h1>
     <ul>
         {% for csv in csv_list %}
             <li><a href='{{ csv.id }}'>{{ csv.filename }}, {{ csv.created|time }}({{ csv.created|timesince }} ago)</a></li>
         {% endfor %}
     </ul>
     <a href="new">Start a new import</a>
-</div>
-
 {% endblock %}

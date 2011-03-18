@@ -1,15 +1,11 @@
 {% extends "csvimporter/base.html" %}
 
 {% block content %}
-
-<div id="content-main">
-    <h2>Upload CSV</h2>
+    <h1>Upload CSV</h1>
     <form action='.' method="post" accept-charset="utf-8" enctype="multipart/form-data">{% csrf_token %}
         <table>
             {{form.as_table}}
         </table>
         <input type="submit" class="submit" />
     </form>
-</div>
-
 {% endblock %}
