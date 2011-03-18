@@ -9,6 +9,7 @@ from django.db.models.fields import FieldDoesNotExist
 from django.db import IntegrityError
 from django.contrib import messages
 from django.utils.translation import ugettext as _
+from django.utils.encoding import force_unicode
 
 from csvimporter.models import CSV
 from csvimporter.utils import create_csv_reader
@@ -72,8 +73,7 @@ class CSVAssociateForm(forms.Form):
                     continue
                 # Cleaning
                 if type(data[key]) in (str, unicode):
-                    data[key] = re.sub(
-                        r"^ +$", "", data[key].encode()).decode()
+                    data[key] = re.sub(r"^ +$", "", force_unicode(data[key]))
                 if type(field) in [models.IntegerField, models.FloatField]:
                     data[key] = data[key].replace(",", "")
                     if not data[key]:
