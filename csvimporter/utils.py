@@ -1,3 +1,5 @@
+# coding: utf-8
+
 import unicodedata
 import re
 from StringIO import StringIO
@@ -30,5 +32,6 @@ def prepare_csv(csv_content):
 def create_csv_reader(_file):
     _file = prepare_csv(_file)
     reader = csv.DictReader(_file, delimiter=";")
+    reader.rows = list(reader)
     reader.fieldnames = [remove_control_chars(f) for f in reader.fieldnames]
     return reader

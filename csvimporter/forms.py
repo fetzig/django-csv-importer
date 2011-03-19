@@ -1,3 +1,5 @@
+# coding: utf-8
+
 import re
 from copy import copy
 
@@ -35,7 +37,6 @@ class CSVAssociateForm(forms.Form):
     def __init__(self, instance, *args, **kwargs):
         self.instance = instance
         self.reader = create_csv_reader(instance.csv_file.file)
-        self.reader_rows = list(self.reader)
         self.klass = self.instance.content_type.model_class()
         # pylint: disable-msg=W0212
         choices = ([(None, '---- (None)')] +
@@ -59,7 +60,7 @@ class CSVAssociateForm(forms.Form):
         line = 1
         errors = []
         
-        for row in self.reader_rows:
+        for row in self.reader.rows:
             data = {}
             for field_name in self.reader.fieldnames:
                 data[self.cleaned_data[field_name]] = row[field_name]
@@ -78,7 +79,7 @@ class CSVAssociateForm(forms.Form):
             'csv_transform', lambda r, d: d)
         dups = 0
         ok = 0
-        for row in self.reader_rows:
+        for row in self.reader.rows:
             data = {}
             for field_name in self.reader.fieldnames:
                 data[self.cleaned_data[field_name]] = row[field_name]
@@ -108,6 +109,5 @@ class CSVAssociateForm(forms.Form):
         if ok:
             messages.info(request, _("Successfully imported %s records.") % ok)
         if dups:
-            messages.warning(request,
-                _("%s records skipped because of duplication.") % dups)
+            messages.warning(request, _("%s records skipped because of duplication.") % dups)
         self.instance.delete()
