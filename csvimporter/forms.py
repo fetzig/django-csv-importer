@@ -28,7 +28,26 @@ class CSVForm(forms.ModelForm):
             self.fields['content_type'].initial = (
                 content_types.get(model=self.model._meta.module_name))
             self.fields['content_type'].widget = forms.widgets.HiddenInput()
-
+    
+    def clean(self):
+        # check file extension (.csv)
+        if not self.cleaned_data['csv_file'].name.endswith(".csv"):
+            raise forms.ValidationError("Wrong File extension.")
+        # check if file can be parsed by pythons csv.DictReader()
+        try:
+            reader = create_csv_reader(self.cleaned_data['csv_file'].file)
+        except:
+            raise forms.ValidationError("Can't process file. Are you sure this is a csv file?")
+        # check if format of csv is valid
+        for field_name in reader.fieldnames:
+            # check if we know all field_names
+            # if not the csv is invalid => this raises an KeyError
+            try:
+                mapped_field_name = self.model.csvimporter['csv_associate'](field_name)
+            except KeyError, e:
+                raise forms.ValidationError('CSV is invalid. Fieldname "%s" is unknown.' % field_name)
+        return super(CSVForm, self).clean()
+    
     class Meta:
         model = CSV
 
