@@ -1,0 +1,33 @@
+<fieldset class="module">
+    {% for field in form %}
+        {% if field.is_hidden %}
+            {{ field }}
+        {% else %}
+            <div class="row{% if field.errors %} errors{% endif %}">
+                <div{% if not line.fields|length_is:"1" %} class="cell"{% endif %}>
+                    {% if field.is_checkbox %}
+                        <div class="column span-4">&nbsp;</div>
+                        <div class="column span-flexible">
+                            {{ field }}{{ field.label_tag }}
+                            {% if field.field.field.help_text %}
+                                <p class="help">{{ field.field.field.help_text|safe }}</p>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <div class="column span-4">{{ field.label_tag }}</div>
+                        <div class="column span-flexible">
+                            {% if field.is_readonly %}
+                                <p>{{ field.contents }}</p>
+                            {% else %}
+                                {{ field }}
+                            {% endif %}
+                            {% if field.field.field.help_text %}
+                                <p class="help">{{ field.field.field.help_text|safe }}</p>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    {% endfor %}
+</fieldset>

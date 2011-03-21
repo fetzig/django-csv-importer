@@ -1,6 +1,10 @@
 {% extends "admin/base_site.html" %}
 {% load i18n %}
 
+
+{% block bodyclass %}{{ opts.app_label }}-{{ opts.object_name.lower }} change-form{% endblock %}
+{% block content-class %}content-flexible{% endblock %}
+
 {% block breadcrumbs %}
   <div id="breadcrumbs"><a href="{% url admin:index %}">{% trans "Home" %}</a>&rsaquo; <a href="{{ redirect_url }}">{{ app_label|capfirst }}</a>&rsaquo; CSV</div>
 {% endblock %}
