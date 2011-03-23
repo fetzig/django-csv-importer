@@ -9,7 +9,12 @@ class CSV(models.Model):
     content_type = models.ForeignKey(ContentType)
     csv_file     = models.FileField(upload_to=upload_to)
     created      = models.DateTimeField(auto_now_add=True)
-
+    
+    result_id_list = models.TextField()
+    
+    class Meta:
+        ordering = ["-id"]
+    
     @property
     def filename(self):
         """

@@ -17,13 +17,16 @@ from csvimporter.models import CSV
 from csvimporter.utils import create_csv_reader
 
 
-class CSVForm(forms.ModelForm):
+class CSVUploadForm(forms.ModelForm):
+    """
+    uploads csv and check if its "valid".
+    """
     def __init__(self, model=None, *args, **kwargs):
         self.model = model
-        super(CSVForm, self).__init__(*args, **kwargs)
+        super(CSVUploadForm, self).__init__(*args, **kwargs)
         content_types = ContentType.objects.all()
         self.fields['content_type'] = forms.ModelChoiceField(queryset=content_types)
-
+        
         if self.model:
             self.fields['content_type'].initial = (
                 content_types.get(model=self.model._meta.module_name))
@@ -46,13 +49,17 @@ class CSVForm(forms.ModelForm):
                 mapped_field_name = self.model.csvimporter['csv_associate'](field_name)
             except KeyError, e:
                 raise forms.ValidationError('CSV is invalid. Fieldname "%s" is unknown.' % field_name)
-        return super(CSVForm, self).clean()
+        return super(CSVUploadForm, self).clean()
     
     class Meta:
         model = CSV
+        exclude = ('result_id_list',)
 
 
-class CSVAssociateForm(forms.Form):
+class CSVImportForm(forms.Form):
+    """
+    imports the data of a csv into the db.
+    """
     def __init__(self, instance, *args, **kwargs):
         self.instance = instance
         self.reader = create_csv_reader(instance.csv_file.file)
@@ -60,7 +67,7 @@ class CSVAssociateForm(forms.Form):
         # pylint: disable-msg=W0212
         choices = ([(None, '---- (None)')] +
                    [(f.name, f.name) for f in self.klass._meta.fields])
-        super(CSVAssociateForm, self).__init__(*args, **kwargs)
+        super(CSVImportForm, self).__init__(*args, **kwargs)
         for field_name in self.reader.fieldnames:
             self.fields[field_name] = forms.ChoiceField(choices=choices, required=False)
             mapped_field_name = self.klass.csvimporter['csv_associate'](field_name)
@@ -73,8 +80,7 @@ class CSVAssociateForm(forms.Form):
                 self.fields[field_name].initial = mapped_field_name
     
     def clean(self):
-        validators = self.klass.csvimporter.get(
-            'csv_validate', lambda d, i: d)
+        validators = self.klass.csvimporter.get('csv_validate', lambda d, i: d)
         
         line = 1
         errors = []
@@ -89,15 +95,15 @@ class CSVAssociateForm(forms.Form):
         if len(errors) > 0:
             raise forms.ValidationError(errors)
         
-        return super(CSVAssociateForm, self).clean()
+        return super(CSVImportForm, self).clean()
         
     def save(self, request):
         # these are out here because we only need
         # to retreive them from settings the once.
-        transforms = self.klass.csvimporter.get(
-            'csv_transform', lambda r, d: d)
+        transforms = self.klass.csvimporter.get('csv_transform', lambda r, d: d)
         dups = 0
         ok = 0
+        result_id_list = None
         for row in self.reader.rows:
             data = {}
             for field_name in self.reader.fieldnames:
@@ -120,13 +126,20 @@ class CSVAssociateForm(forms.Form):
             try:
                 new_obj.save()
                 ok += 1
+                if result_id_list == None:
+                    result_id_list = str(new_obj.pk)
+                else:
+                    result_id_list += "," + str(new_obj.pk)
             except IntegrityError, e:
                 if 'unique' in str(e):
                     dups += 1
                 else:
                     raise
+        
         if ok:
             messages.info(request, _("Successfully imported %s records.") % ok)
         if dups:
             messages.warning(request, _("%s records skipped because of duplication.") % dups)
-        self.instance.delete()
+        
+        self.instance.result_id_list = result_id_list
+        self.instance.save()

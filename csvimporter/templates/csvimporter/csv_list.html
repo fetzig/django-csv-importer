@@ -1,11 +1,24 @@
 {% extends "csvimporter/base.html" %}
 
+{% load i18n %}
+
+
+{% block content_title %}<h1>Import CSV</h1>{% endblock %}
+
+
 {% block content %}
-    <h1>CSV Uploads</h1>
-    <ul>
-        {% for csv in csv_list %}
-            <li><a href='{{ csv.id }}'>{{ csv.filename }}, {{ csv.created|time }}({{ csv.created|timesince }} ago)</a></li>
-        {% endfor %}
-    </ul>
-    <a href="new">Start a new import</a>
+    <div class="container-flexible">
+        <div class="form-container">
+            <fieldset class="module">
+            {% for csv in csv_list %}
+                <div class="row">
+                    <div class="cell">
+                        {{ csv.filename }} <a href='{% url csv_result csv.id %}'>{% trans "result list" %}</a>
+                        <p class="help">{{ csv.created|time }} ({{ csv.created|timesince }} {% trans 'ago' %})</p>
+                    </div>
+                </div>
+            {% endfor %}
+            </fieldset>
+        </div>
+    </div>
 {% endblock %}
