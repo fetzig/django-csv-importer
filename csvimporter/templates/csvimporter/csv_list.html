@@ -13,8 +13,8 @@
             {% for csv in csv_list %}
                 <div class="row">
                     <div class="cell">
-                        {{ csv.filename }} <a href='{% url csv_result csv.id %}'>{% trans "result list" %}</a>
-                        <p class="help">{{ csv.created|time }} ({{ csv.created|timesince }} {% trans 'ago' %})</p>
+                        <a href='{% url csv_result csv.id %}'>{{ csv.filename }}</a>
+                        <p class="help">{{ csv.created }}</p>
                     </div>
                 </div>
             {% endfor %}

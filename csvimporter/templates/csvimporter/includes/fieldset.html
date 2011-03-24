@@ -16,11 +16,8 @@
                     {% else %}
                         <div class="column span-4">{{ field.label_tag }}</div>
                         <div class="column span-flexible">
-                            {% if field.is_readonly %}
-                                <p>{{ field.contents }}</p>
-                            {% else %}
-                                {{ field }}
-                            {% endif %}
+                            {{ field }}
+                            {{ field.errors }}
                             {% if field.field.field.help_text %}
                                 <p class="help">{{ field.field.field.help_text|safe }}</p>
                             {% endif %}
