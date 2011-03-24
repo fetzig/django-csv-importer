@@ -32,7 +32,9 @@ class CSVUploadForm(forms.ModelForm):
                 content_types.get(model=self.model._meta.module_name))
             self.fields['content_type'].widget = forms.widgets.HiddenInput()
     
-    def clean(self):
+    def clean_csv_file(self):
+        if not 'csv_file' in self.cleaned_data:
+            raise forms.ValidationError("No File selected.")
         # check file extension (.csv)
         if not self.cleaned_data['csv_file'].name.endswith(".csv"):
             raise forms.ValidationError("Wrong File extension.")
@@ -49,7 +51,7 @@ class CSVUploadForm(forms.ModelForm):
                 mapped_field_name = self.model.csvimporter['csv_associate'](field_name)
             except KeyError, e:
                 raise forms.ValidationError('CSV is invalid. Fieldname "%s" is unknown.' % field_name)
-        return super(CSVUploadForm, self).clean()
+        return self.cleaned_data['csv_file']
     
     class Meta:
         model = CSV
