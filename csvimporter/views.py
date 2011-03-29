@@ -54,14 +54,12 @@ def csv_upload(request, **kwargs):
         kwargs["form_class"] = CSVUploadForm
     kwargs = prepare_view(request, kwargs)
     if request.method == 'POST':
-        form = kwargs["form_class"](kwargs["model"],
-                                    request.POST, request.FILES)
+        form = kwargs["form_class"](request.POST, request.FILES, **{'model':kwargs["model"]})
         if form.is_valid():
             instance = form.save()
-            return HttpResponseRedirect(
-                        reverse('csv_import', args=[instance.id]))
+            return HttpResponseRedirect(reverse('csv_import', args=[instance.id]))
     else:
-        form = kwargs["form_class"](kwargs["model"])
+        form = kwargs["form_class"](**{'model':kwargs["model"]})
     kwargs["extra_context"].update({"form": form})
     return render_to_response(kwargs["template_name"],
         kwargs["extra_context"],

@@ -21,8 +21,8 @@ class CSVUploadForm(forms.ModelForm):
     """
     uploads csv and check if its "valid".
     """
-    def __init__(self, model=None, *args, **kwargs):
-        self.model = model
+    def __init__(self, *args, **kwargs):
+        self.model = kwargs.pop('model')
         super(CSVUploadForm, self).__init__(*args, **kwargs)
         content_types = ContentType.objects.all()
         self.fields['content_type'] = forms.ModelChoiceField(queryset=content_types)
