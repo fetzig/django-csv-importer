@@ -36,7 +36,7 @@ class CSVUploadForm(forms.ModelForm):
             raise forms.ValidationError("No File selected.")
         # check file extension (.csv)
         if not self.cleaned_data['csv_file'].name.endswith(".csv"):
-            raise forms.ValidationError("Wrong File extension.")
+            raise forms.ValidationError(_("Wrong File extension."))
         # check if file can be parsed by pythons csv.DictReader()
         try:
             reader = create_csv_reader(self.cleaned_data['csv_file'].file)

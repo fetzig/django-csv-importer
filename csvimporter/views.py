@@ -1,9 +1,13 @@
+# coding: utf-8
+
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.urlresolvers import reverse
+from django.db import transaction
 from django.http import HttpResponseRedirect
 from django.shortcuts import render_to_response, get_object_or_404
 from django.template import RequestContext
+from django.utils.translation import ugettext as _
 from django.views.generic.list_detail import object_list, object_detail
 
 from csvimporter.models import CSV
@@ -77,11 +81,11 @@ def csv_import(request, object_id, **kwargs):
         form = kwargs["form_class"](instance, request.POST)
         if form.is_valid():
             form.save(request)
-            request.user.message_set.create(message='CSV imported.')
+            request.user.message_set.create(message=_('CSV imported.'))
             kwargs["redirect_url"] = reverse('csv_result', args=[instance.id])
             return HttpResponseRedirect(kwargs["redirect_url"])
     else:
-        messages.info(request, 'Uploaded CSV. Please associate fields below.')
+        messages.info(request, _('Uploaded CSV. Please associate fields below.'))
         form = CSVImportForm(instance)
     kwargs["extra_context"].update({"form": form})
     return object_detail(request,
