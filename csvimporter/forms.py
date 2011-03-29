@@ -28,9 +28,8 @@ class CSVUploadForm(forms.ModelForm):
         self.fields['content_type'] = forms.ModelChoiceField(queryset=content_types)
         
         if self.model:
-            self.fields['content_type'].initial = (
-                content_types.get(model=self.model._meta.module_name))
-            self.fields['content_type'].widget = forms.widgets.HiddenInput()
+            self.fields['content_type'].initial = (content_types.get(model=self.model._meta.module_name).id)
+            self.fields['content_type'].widget = forms.HiddenInput(attrs={})
     
     def clean_csv_file(self):
         if not 'csv_file' in self.cleaned_data:
